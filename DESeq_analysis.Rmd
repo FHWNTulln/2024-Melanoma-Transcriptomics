@@ -1,0 +1,410 @@
+---
+title: "Differential Expression Analysis"
+output:
+  html_document:
+    df_print: paged
+    toc: true
+    toc_float: true
+---
+# Setup
+
+```{r setup}
+
+source("helpers.R")
+
+dir.create("results/DESeq", showWarnings = F, recursive = T)
+
+knitr::opts_chunk$set(fig.width = 10, dpi = 300, results = "hold", fig.show = "hold")
+
+```
+
+```{r plot_settings}
+
+## Counts plot
+
+countsToPlot <- c("CD274", "BRAF", "BCL2", "VEGFC", "PDGFC")
+
+## Heatmaps
+
+hm_scale_by_row <- TRUE
+hm_max_rows <- 50
+
+hmap_colors <- colorRamp2(c(-1.5, 0, 1.5), c("darkblue", "white", "darkred"))
+annotation_colors <- c("nHEM" = "#F8766D",
+                       "MCM1G" =  "#7CAE00",
+                       "MCMDLN" = "#00BFC4",
+                       "MCMDLN_3D" = "#C77CFF")
+
+## Volcano plot
+
+vp_max_labels <- 0
+vp_lfc_limit <- NA
+
+```
+
+
+## Import data
+
+```{r import_data}
+
+# Read metadata
+samples <- read.delim("data/metadata.txt") %>% as_tibble()
+
+# Read featurecounts output
+countdata <- read_counts(samples$Files, "data/featurecounts/", sample_IDs = samples$Sample_ID)
+
+# Read GTF file
+genedata <- read_genes("data/genes.gtf", countdata$Geneid)
+
+```
+
+## Prepare data for analysis
+
+```{r, prepare_data}
+
+countdata.filtered <- filter_counts(countdata)
+
+# Move gene info to separate dataframe and remove from count data
+genedata.filtered <- genedata %>% 
+  filter(ENSEMBL %in% rownames(countdata.filtered))
+
+samples %<>%
+  mutate(Type = str_remove(Sample_ID, "(_[23]D)?_\\d$"),
+         Class = factor(Class, c("nHEM", "MCM1G", "MCMDLN", "MCMDLN_3D")))
+
+summary(samples)
+
+```
+
+# Run DESeq analysis
+
+```{r, run_DESeq}
+# Create DESeq dataset
+dds <- DESeqDataSetFromMatrix(countData = countdata.filtered, colData = samples, design = ~Class)
+
+# Run DESeq analysis
+dds = DESeq(dds)
+normalized_counts = counts(dds, normalized = T)
+
+```
+
+## Overview and QC plots
+
+```{r DESeq_QC}
+
+# Dispersion plot for QC
+plotDispEsts(dds)
+
+# transform data with regularized log for visualization
+vsd <- vst(dds, blind = T)
+
+# Principal component analysis
+plot_pca(vsd)
+
+# Correlation heatmap
+samplecorr <- cor(assay(vsd))
+rownames(samplecorr) <- samples$Sample_ID
+
+hmap_annotation <- samples %>%
+  dplyr::select(c(Class))
+
+Heatmap(samplecorr, c("darkblue", "khaki1", "darkred"), name = "Correlation", 
+        show_column_names = FALSE, row_dend_reorder = FALSE, column_dend_reorder = FALSE,
+        top_annotation = HeatmapAnnotation(Class = hmap_annotation$Class,
+                                           col = list(Class = annotation_colors),
+                                           show_annotation_name = FALSE))
+
+```
+
+## Extract results from DESeq object
+
+```{r extract_results}
+
+res.1GvsHEM = results(dds, contrast = c("Class", "MCM1G", "nHEM"), alpha = 0.05)
+res.DLNvsHEM = results(dds, contrast = c("Class", "MCMDLN", "nHEM"), alpha = 0.05)
+res.DLNvs1G = results(dds, contrast = c("Class", "MCMDLN", "MCM1G"), alpha = 0.05)
+res.3Dvs2D = results(dds, contrast = c("Class", "MCMDLN_3D", "MCMDLN"), alpha = 0.05)
+
+
+plotMA(res.1GvsHEM, ylim=c(-2, 2), main = "MCM1G vs nHEM")
+plotMA(res.DLNvsHEM, ylim=c(-2, 2), main = "MCMDLN vs nHEM")
+plotMA(res.DLNvs1G, ylim=c(-2, 2), main = "MCMDLN vs MCM1G")
+plotMA(res.3Dvs2D, ylim=c(-2, 2), main = "MCMDLN (3D) vs MCMDLN (2D)")
+
+
+print("MCM1G vs nHEM")
+summary(res.1GvsHEM)
+
+print("MCMDLN vs nHEM")
+summary(res.DLNvsHEM)
+
+print("MCMDLN vs MCM1G")
+summary(res.DLNvs1G)
+
+print("MCMDLN (3D) vs MCMDLN (2D)")
+summary(res.3Dvs2D)
+
+```
+
+## Perform shrinkage
+
+```{r lfc_shrinkage}
+
+res.1GvsHEM <- lfcShrink(dds = dds, res = res.1GvsHEM, type = "ashr")
+res.DLNvsHEM <- lfcShrink(dds = dds, res = res.DLNvsHEM, type = "ashr")
+res.DLNvs1G <- lfcShrink(dds = dds, res = res.DLNvs1G, type = "ashr")
+res.3Dvs2D <- lfcShrink(dds = dds, res = res.3Dvs2D, type = "ashr")
+
+
+plotMA(res.1GvsHEM, ylim=c(-2, 2), main = "MCM1G vs nHEM")
+plotMA(res.DLNvsHEM, ylim=c(-2, 2), main = "MCMDLN vs nHEM")
+plotMA(res.DLNvs1G, ylim=c(-2, 2), main = "MCMDLN vs MCM1G")
+plotMA(res.3Dvs2D, ylim=c(-2, 2), main = "MCMDLN (3D) vs MCMDLN (2D)")
+
+```
+
+# Results
+
+```{r}
+
+results_all <- list(MCM1G_vs_nHEM = res.1GvsHEM, 
+                    MCMDLN_vs_nHEM = res.DLNvsHEM, 
+                    MCMDLN_vs_MCM1G = res.DLNvs1G, 
+                    MCMDLN_3D_vs_2D = res.3Dvs2D)
+
+results_all %>%
+  lapply(function(x) {
+    x %>% 
+      as.data.frame() %>%
+      filter(padj < 0.05 & abs(log2FoldChange) >= 1) %>%
+      dplyr::select(log2FoldChange) %>%
+      sign() %>%
+      mutate(Expression = ifelse(log2FoldChange == 1, "Overexpressed", "Underexpressed")) %>%
+      dplyr::select(!log2FoldChange) %>%
+      group_by(Expression) %>%
+      count()
+  }) %>%
+  bind_rows(.id = "Comparison") %>%
+  pivot_wider(names_from = Expression, values_from = n) %>%
+  mutate(Total = Overexpressed + Underexpressed)
+  
+
+```
+
+
+## Expression levels (all samples)
+
+```{r expression_levels}
+
+counts.plot <- lapply(countsToPlot, function(x) {
+  plotCounts(dds, genedata.filtered[genedata.filtered$Name == x,]$ENSEMBL,
+              intgroup = c("Class"), returnData = TRUE)
+  }) %>%
+  set_names(countsToPlot) %>%
+  lapply(rownames_to_column, var = "Sample_ID") %>%
+  bind_rows(.id = "Gene") %>%
+  group_by(Gene, Class) %>%
+  summarise(mean_count = mean(count), sd_count = sd(count), .groups = "drop") %>%
+  mutate(min_error = ifelse(mean_count - sd_count >= 0, mean_count - sd_count, 0), 
+           max_error = mean_count + sd_count)
+
+ggplot(counts.plot, aes(x = Gene, y = mean_count, fill = Class)) +
+  geom_col(position = "dodge") +
+  geom_errorbar(aes(ymin = min_error, ymax = max_error), 
+                position = position_dodge(0.9), width = 0.2) +
+  labs(x = "", y = "Mean Count", fill = "") +
+  theme_pubr() +
+  theme(legend.position = "right", legend.text = element_text(size = 12), panel.grid.major.y = element_line(linewidth = 0.5))
+
+```
+
+## MCM1G vs nHEM
+
+```{r 1GvsHEM_filter_significance}
+
+res.1GvsHEM.tb <- res.1GvsHEM %>%
+  data.frame() %>%
+  rownames_to_column(var = "ENSEMBL") %>%
+  as_tibble() %>%
+  left_join(genedata.filtered, ., by = "ENSEMBL") %>%
+  mutate(threshold = padj < 0.05 & abs(log2FoldChange) >= 1)
+  
+res.1GvsHEM.sig <- res.1GvsHEM.tb %>%
+  filter(threshold == TRUE)
+
+pvalues <- res.1GvsHEM.sig$padj
+names(pvalues) <- rownames(res.1GvsHEM.sig)
+
+norm.1GvsHEM.sig <- normalized_counts %>%
+  data.frame() %>%
+  dplyr::select(samples$Sample_ID[samples$Class %in% c("MCM1G", "nHEM")]) %>%
+  filter(rownames(.) %in% res.1GvsHEM.sig$ENSEMBL) 
+
+write.csv(res.1GvsHEM.tb %>% dplyr::select(-threshold), 
+          file = "results/DESeq/MCM1G_vs_nHEM_unfiltered.csv",
+          row.names = FALSE)
+write.csv(res.1GvsHEM.sig %>% dplyr::select(-threshold), 
+          file = "results/DESeq/MCM1G_vs_nHEM_filtered.csv",
+          row.names = FALSE)
+
+```
+
+
+```{r 1GvsHEM_heatmap, fig.height=10}
+
+plot_heatmap(norm.1GvsHEM.sig, hmap_colors, annotation_colors, 
+             genedata.filtered, samples, pvalues, max_rows = hm_max_rows)
+
+```
+
+
+```{r 1GvsHEM_volcanoplot}
+
+volcanoplot(res.1GvsHEM.tb, title = "MCM1G vs. nHEM", max_labels = vp_max_labels, 
+            lfc_limit = vp_lfc_limit)
+  
+```
+
+
+## MCMDLN vs nHEM
+
+```{r DLNvsHEM_filter_significance}
+
+res.DLNvsHEM.tb <- res.DLNvsHEM %>%
+  data.frame() %>%
+  rownames_to_column(var = "ENSEMBL") %>%
+  as_tibble() %>%
+  left_join(genedata.filtered, ., by = "ENSEMBL") %>%
+  mutate(threshold = padj < 0.05 & abs(log2FoldChange) >= 1)
+  
+res.DLNvsHEM.sig <- res.DLNvsHEM.tb %>%
+  filter(threshold == TRUE)
+
+pvalues <- res.DLNvsHEM.sig$padj
+names(pvalues) <- rownames(res.DLNvsHEM.sig)
+
+norm.DLNvsHEM.sig <- normalized_counts %>%
+  data.frame() %>%
+  dplyr::select(samples$Sample_ID[samples$Class %in% c("MCMDLN", "nHEM")]) %>%
+  filter(rownames(.) %in% res.DLNvsHEM.sig$ENSEMBL) 
+
+write.csv(res.DLNvsHEM.tb %>% dplyr::select(-threshold), 
+          file = "results/DESeq/MCMDLN_vs_nHEM_unfiltered.csv",
+          row.names = FALSE)
+write.csv(res.DLNvsHEM.sig %>% dplyr::select(-threshold), 
+          file = "results/DESeq/MCMDLN_vs_nHEM_filtered.csv",
+          row.names = FALSE)
+
+```
+
+
+```{r DLNvsHEM_heatmap, fig.height=10}
+
+plot_heatmap(norm.DLNvsHEM.sig, hmap_colors, annotation_colors, 
+             genedata.filtered, samples, pvalues, max_rows = hm_max_rows)
+
+```
+
+
+```{r DLNvsHEM_volcanoplot}
+
+volcanoplot(res.DLNvsHEM.tb, title = "MCMDLN vs. nHEM", max_labels = vp_max_labels, 
+            lfc_limit = vp_lfc_limit)
+  
+```
+
+
+## MCMDLN vs MCM1G
+
+```{r DLNvs1G_filter_significance}
+
+res.DLNvs1G.tb <- res.DLNvs1G %>%
+  data.frame() %>%
+  rownames_to_column(var = "ENSEMBL") %>%
+  as_tibble() %>%
+  left_join(genedata.filtered, ., by = "ENSEMBL") %>%
+  mutate(threshold = padj < 0.05 & abs(log2FoldChange) >= 1)
+  
+res.DLNvs1G.sig <- res.DLNvs1G.tb %>%
+  filter(threshold == TRUE)
+
+pvalues <- res.DLNvs1G.sig$padj
+names(pvalues) <- rownames(res.DLNvs1G.sig)
+
+norm.DLNvs1G.sig <- normalized_counts %>%
+  data.frame() %>%
+  dplyr::select(samples$Sample_ID[samples$Class %in% c("MCMDLN", "MCM1G")]) %>%
+  filter(rownames(.) %in% res.DLNvs1G.sig$ENSEMBL) 
+
+write.csv(res.DLNvs1G.tb %>% dplyr::select(-threshold), 
+          file = "results/DESeq/MCMDLN_vs_MCM1G_unfiltered.csv",
+          row.names = FALSE)
+write.csv(res.DLNvs1G.sig %>% dplyr::select(-threshold), 
+          file = "results/DESeq/MCMDLN_vs_MCM1G_filtered.csv",
+          row.names = FALSE)
+
+```
+
+
+```{r DLNvs1G_heatmap, fig.height=10}
+
+plot_heatmap(norm.DLNvs1G.sig, hmap_colors, annotation_colors, 
+             genedata.filtered, samples, pvalues, max_rows = hm_max_rows)
+
+```
+
+
+```{r DLNvs1G_volcanoplot}
+
+volcanoplot(res.DLNvs1G.tb, title = "MCMDLN vs. MCM1G", max_labels = vp_max_labels, 
+            lfc_limit = vp_lfc_limit)
+  
+```
+
+
+## MCMDLN (3D) vs MCMDLN (2D)
+
+```{r 3Dvs2D_filter_significance}
+
+res.3Dvs2D.tb <- res.3Dvs2D %>%
+  data.frame() %>%
+  rownames_to_column(var = "ENSEMBL") %>%
+  as_tibble() %>%
+  left_join(genedata.filtered, ., by = "ENSEMBL") %>%
+  mutate(threshold = padj < 0.05 & abs(log2FoldChange) >= 1)
+  
+res.3Dvs2D.sig <- res.3Dvs2D.tb %>%
+  filter(threshold == TRUE)
+
+pvalues <- res.3Dvs2D.sig$padj
+names(pvalues) <- rownames(res.3Dvs2D.sig)
+
+norm.3Dvs2D.sig <- normalized_counts %>%
+  data.frame() %>%
+  dplyr::select(samples$Sample_ID[samples$Class %in% c("MCMDLN", "MCMDLN_3D")]) %>%
+  filter(rownames(.) %in% res.3Dvs2D.sig$ENSEMBL) 
+
+write.csv(res.3Dvs2D.tb %>% dplyr::select(-threshold), 
+          file = "results/DESeq/MCMDLN3D_vs_MCMDLN_unfiltered.csv",
+          row.names = FALSE)
+write.csv(res.3Dvs2D.sig %>% dplyr::select(-threshold), 
+          file = "results/DESeq/MCMDLN3D_vs_MCMDLN_filtered.csv",
+          row.names = FALSE)
+
+```
+
+
+```{r 3Dvs2D_heatmap, fig.height=10}
+
+plot_heatmap(norm.3Dvs2D.sig, hmap_colors, annotation_colors, 
+             genedata.filtered, samples, pvalues, max_rows = hm_max_rows)
+
+```
+
+
+```{r 3Dvs2D_volcanoplot}
+
+volcanoplot(res.3Dvs2D.tb, title = "MCMDLN vs. MCM1G", max_labels = vp_max_labels, 
+            lfc_limit = vp_lfc_limit)
+  
+```

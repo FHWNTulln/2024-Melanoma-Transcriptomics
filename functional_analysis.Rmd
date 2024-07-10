@@ -1,0 +1,1141 @@
+---
+title: "Functional Analysis"
+output:
+  html_document:
+    df_print: paged
+    toc: true
+    toc_float: true
+---
+
+# Setup
+
+```{r setup}
+
+library(tidyverse)
+library(clusterProfiler)
+library(org.Hs.eg.db)
+library(enrichplot)
+library(pathview)
+library(DOSE)
+
+knitr::opts_chunk$set(fig.width = 10, out.width = "100%", dpi = 300)
+
+dir.create(path = "./results/FA", showWarnings = FALSE)
+
+```
+
+# Results
+
+## MCM1G vs. nHEM
+
+### Gene ontology
+
+#### Biological Process
+
+```{r MCM1GvsHEM_import, warning=FALSE}
+out.dir <- "./results/FA/MCM1G_vs_nHEM/"
+
+dir.create(out.dir)
+
+res.1GvsHEM <- read.csv("results/DESeq/MCM1G_vs_nHEM_unfiltered.csv") %>%
+  as_tibble() %>%
+  arrange(desc(log2FoldChange))
+
+gene_list.1GvsHEM <- res.1GvsHEM$log2FoldChange
+names(gene_list.1GvsHEM) <- res.1GvsHEM$ENSEMBL
+
+```
+
+
+```{r MCM1GvsHEM_go_bp, warning=FALSE}
+
+
+gseGO.1GvsHEM.BP <- gseGO(gene_list.1GvsHEM,
+                          ont = "BP",
+                          OrgDb = org.Hs.eg.db,
+                          keyType = "ENSEMBL",
+                          maxGSSize = 500,
+                          minGSSize = 15)
+
+gseGO.1GvsHEM.BP <- simplify(gseGO.1GvsHEM.BP)
+gseGO.1GvsHEM.BP <- setReadable(gseGO.1GvsHEM.BP, "org.Hs.eg.db", "ENSEMBL")
+gseGO.1GvsHEM.BP
+
+write.csv(data.frame(gseGO.1GvsHEM.BP), file = paste0(out.dir, "gsea_go_bp.csv"), row.names = F)
+
+MCM1GvsHEM.go_bp.plot <- nrow(gseGO.1GvsHEM.BP) > 0
+
+```
+
+```{r MCM1GvsHEM_go_bp_dotplot, eval=MCM1GvsHEM.go_bp.plot, fig.asp=1.25}
+
+dotplot(gseGO.1GvsHEM.BP, showCategory = 15, size = NULL, split = ".sign", font.size = 10) + 
+  facet_grid(~.sign) +
+  scale_fill_gradient(low = "red", high = "white", limits = c(0, 0.05), name = "adj. p-value")
+
+```
+
+```{r MCM1GvsHEM_go_bp_netplot, eval=MCM1GvsHEM.go_bp.plot, fig.asp=1}
+
+cnetplot(gseGO.1GvsHEM.BP, showCategory = 5, color.params = list(foldChange = gene_list.1GvsHEM),
+         cex.params = list(category_label = 0.6, gene_label = 0.4)) +
+  scale_color_gradient2(low = "blue", mid = "white", high = "red", limits = c(-2, 2), name = "Fold Change", oob = scales::squish)
+
+```
+
+```{r MCM1GvsHEM_go_bp_mapplot, eval=MCM1GvsHEM.go_bp.plot, fig.asp=1}
+gseGO.1GvsHEM.BP.pwts <- pairwise_termsim(gseGO.1GvsHEM.BP)
+
+emapplot(gseGO.1GvsHEM.BP.pwts, force = 1.5,
+         cex.params = list(category_label = 0.7)) +
+  scale_fill_gradient(low = "red", high = "white", limits = c(0, 0.05), name = "adj. p-value")
+```
+
+#### Cellular Component
+
+```{r MCM1GvsHEM_go_cc, warning=FALSE}
+  
+
+gseGO.1GvsHEM.CC <- gseGO(gene_list.1GvsHEM,
+                          ont = "CC",
+                          OrgDb = org.Hs.eg.db,
+                          keyType = "ENSEMBL",
+                          maxGSSize = 500,
+                          minGSSize = 15)
+
+gseGO.1GvsHEM.CC <- simplify(gseGO.1GvsHEM.CC)
+gseGO.1GvsHEM.CC <- setReadable(gseGO.1GvsHEM.CC, "org.Hs.eg.db", "ENSEMBL")
+gseGO.1GvsHEM.CC
+
+write.csv(data.frame(gseGO.1GvsHEM.CC), file = paste0(out.dir, "gsea_go_cc.csv"), row.names = F)
+
+MCM1GvsHEM.go_cc.plot <- nrow(gseGO.1GvsHEM.CC) > 0
+
+```
+
+```{r MCM1GvsHEM_go_cc_dotplot, eval=MCM1GvsHEM.go_cc.plot, fig.asp=1}
+
+dotplot(gseGO.1GvsHEM.CC, showCategory = 15, size = NULL, split = ".sign", font.size = 10) + 
+  facet_grid(~.sign) +
+  scale_fill_gradient(low = "red", high = "white", limits = c(0, 0.05), name = "adj. p-value")
+
+```
+
+```{r MCM1GvsHEM_go_cc_netplot, eval=MCM1GvsHEM.go_cc.plot, fig.asp=1}
+
+cnetplot(gseGO.1GvsHEM.CC, showCategory = 5, color.params = list(foldChange = gene_list.1GvsHEM),
+         cex.params = list(category_label = 0.6, gene_label = 0.4)) +
+  scale_color_gradient2(low = "blue", mid = "white", high = "red", limits = c(-2, 2), name = "Fold Change", oob = scales::squish)
+
+```
+
+```{r MCM1GvsHEM_go_cc_mapplot, eval=MCM1GvsHEM.go_cc.plot, fig.asp=1}
+gseGO.1GvsHEM.CC.pwts <- pairwise_termsim(gseGO.1GvsHEM.CC)
+
+emapplot(gseGO.1GvsHEM.CC.pwts, force = 1.5,
+         cex.params = list(category_label = 0.7)) +
+  scale_fill_gradient(low = "red", high = "white", limits = c(0, 0.05), name = "adj. p-value")
+```
+
+#### Molecular Function
+
+```{r MCM1GvsHEM_go_mf, warning=FALSE}
+  
+
+gseGO.1GvsHEM.MF <- gseGO(gene_list.1GvsHEM,
+                          ont = "MF",
+                          OrgDb = org.Hs.eg.db,
+                          keyType = "ENSEMBL",
+                          maxGSSize = 500,
+                          minGSSize = 15)
+
+gseGO.1GvsHEM.MF <- simplify(gseGO.1GvsHEM.MF)
+gseGO.1GvsHEM.MF <- setReadable(gseGO.1GvsHEM.MF, "org.Hs.eg.db", "ENSEMBL")
+gseGO.1GvsHEM.MF
+
+write.csv(data.frame(gseGO.1GvsHEM.MF), file = paste0(out.dir, "gsea_go_mf.csv"), row.names = F)
+
+MCM1GvsHEM.go_mf.plot <- nrow(gseGO.1GvsHEM.MF) > 0
+
+```
+
+```{r MCM1GvsHEM_go_mf_dotplot, eval=MCM1GvsHEM.go_mf.plot, fig.asp=0.9}
+
+dotplot(gseGO.1GvsHEM.MF, showCategory = 15, size = NULL, split = ".sign", font.size = 10) + 
+  facet_grid(~.sign) +
+  scale_fill_gradient(low = "red", high = "white", limits = c(0, 0.05), name = "adj. p-value")
+
+```
+
+```{r MCM1GvsHEM_go_mf_netplot, eval=MCM1GvsHEM.go_mf.plot, fig.asp=1}
+
+cnetplot(gseGO.1GvsHEM.MF, showCategory = 5, color.params = list(foldChange = gene_list.1GvsHEM),
+         cex.params = list(category_label = 0.6, gene_label = 0.4)) +
+  scale_color_gradient2(low = "blue", mid = "white", high = "red", limits = c(-2, 2), name = "Fold Change", oob = scales::squish)
+
+```
+
+```{r MCM1GvsHEM_go_mf_mapplot, eval=MCM1GvsHEM.go_mf.plot, fig.asp=1}
+gseGO.1GvsHEM.MF.pwts <- pairwise_termsim(gseGO.1GvsHEM.MF)
+
+emapplot(gseGO.1GvsHEM.MF.pwts, force = 1.5,
+         cex.params = list(category_label = 0.7)) +
+  scale_fill_gradient(low = "red", high = "white", limits = c(0, 0.05), name = "adj. p-value")
+```
+
+### KEGG (Kyoto Encyclopedia of Genes and Genomes)
+
+```{r MCM1GvsHEM_translate_ids, warning=FALSE}
+ids <- bitr(names(gene_list.1GvsHEM), fromType = "ENSEMBL", toType = "ENTREZID", OrgDb = org.Hs.eg.db)
+ids <- ids[!duplicated(ids$ENSEMBL),]
+
+gene_list.1GvsHEM.entrez <- gene_list.1GvsHEM[names(gene_list.1GvsHEM) %in% ids$ENSEMBL]
+names(gene_list.1GvsHEM.entrez) <- ids$ENTREZID
+gene_list.1GvsHEM.entrez <- gene_list.1GvsHEM.entrez[!duplicated(names(gene_list.1GvsHEM.entrez))]
+
+```
+
+
+```{r MCM1GvsHEM_kegg, warning=FALSE}
+
+
+gseKEGG.1GvsHEM <- gseKEGG(gene_list.1GvsHEM.entrez,
+                         organism = "hsa",
+                         keyType = "ncbi-geneid",
+                         eps = 0,
+                         maxGSSize = 500,
+                         minGSSize = 15)
+
+gseKEGG.1GvsHEM <- setReadable(gseKEGG.1GvsHEM, "org.Hs.eg.db", "ENTREZID")
+gseKEGG.1GvsHEM
+
+write.csv(data.frame(gseKEGG.1GvsHEM), file = paste0(out.dir, "gsea_kegg.csv"), row.names = F)
+
+MCM1GvsHEM.kegg.plot <- nrow(gseKEGG.1GvsHEM) > 0
+
+```
+
+
+```{r MCM1GvsHEM_kegg_dotplot, eval=MCM1GvsHEM.kegg.plot, fig.asp=0.9}
+
+dotplot(gseKEGG.1GvsHEM, showCategory = 15, size = NULL, split = ".sign", font.size = 9, label_format = 40) + 
+  facet_grid(~.sign) +
+  scale_fill_gradient(low = "red", high = "white", limits = c(0, 0.05), name = "adj. p-value")
+
+```
+
+```{r MCM1GvsHEM_kegg_netplot, eval=MCM1GvsHEM.kegg.plot, fig.asp=1}
+
+cnetplot(gseKEGG.1GvsHEM, showCategory = 5, color.params = list(foldChange = gene_list.1GvsHEM.entrez),
+         cex.params = list(category_label = 0.6, gene_label = 0.4)) +
+  scale_color_gradient2(low = "blue", mid = "white", high = "red", limits = c(-2, 2), name = "Fold Change", oob = scales::squish)
+
+```
+
+```{r MCM1GvsHEM_kegg_mapplot, eval=MCM1GvsHEM.kegg.plot, fig.asp=1}
+gseKEGG.1GvsHEM.pwts <- pairwise_termsim(gseKEGG.1GvsHEM)
+
+emapplot(gseKEGG.1GvsHEM.pwts, force = 1.5,
+         cex.params = list(category_label = 0.8)) +
+  scale_fill_gradient(low = "red", high = "white", limits = c(0, 0.05), name = "adj. p-value")
+
+```
+
+```{r MCM1GvsHEM_kegg_pathview, eval=MCM1GvsHEM.kegg.plot}
+
+pathway <- "hsa04110"
+
+pathview(gene.data = gene_list.1GvsHEM.entrez, pathway.id = pathway, 
+         species = "hsa", low = list(gene = "orangered", cpd = "orangered"),
+         mid = list(gene = "white", cpd = "white"), 
+         high = list(gene = "deepskyblue", cpd = "deepskyblue"), na.col = "grey")
+
+filename <- paste0(pathway, ".pathview.png")
+
+file.rename(filename, paste0(out.dir, filename))
+
+knitr::include_graphics(paste0(out.dir, filename))
+
+```
+
+### Disease ontology
+
+```{r MCM1GvsHEM_do, warning=FALSE}
+
+
+gseDO.1GvsHEM <- gseDO(gene_list.1GvsHEM.entrez,
+                     eps = 0,
+                     maxGSSize = 500,
+                     minGSSize = 15)
+
+gseDO.1GvsHEM <- setReadable(gseDO.1GvsHEM, "org.Hs.eg.db", "ENTREZID")
+gseDO.1GvsHEM
+
+write.csv(data.frame(gseDO.1GvsHEM), file = paste0(out.dir, "gsea_do.csv"), row.names = F)
+
+MCM1GvsHEM.DO.plot <- nrow(gseDO.1GvsHEM) > 0
+
+```
+
+```{r MCM1GvsHEM_do_dotplot, eval=MCM1GvsHEM.DO.plot, fig.asp=0.9}
+
+dotplot(gseDO.1GvsHEM, showCategory = 15, size = NULL, split = ".sign", font.size = 9, label_format = 40) + 
+  facet_grid(~.sign) +
+  scale_fill_gradient(low = "red", high = "white", limits = c(0, 0.05), name = "adj. p-value")
+
+```
+
+```{r MCM1GvsHEM_do_netplot, eval=MCM1GvsHEM.DO.plot, fig.asp=1}
+
+cnetplot(gseDO.1GvsHEM, showCategory = 5, color.params = list(foldChange = gene_list.1GvsHEM.entrez),
+         cex.params = list(category_label = 0.6, gene_label = 0.4)) +
+  scale_color_gradient2(low = "blue", mid = "white", high = "red", limits = c(-2, 2), name = "Fold Change", oob = scales::squish)
+
+```
+
+```{r MCM1GvsHEM_do_mapplot, eval=MCM1GvsHEM.DO.plot, fig.asp=1}
+
+gseDO.1GvsHEM.pwts <- pairwise_termsim(gseDO.1GvsHEM)
+
+emapplot(gseDO.1GvsHEM.pwts, force = 1.5,
+         cex.params = list(category_label = 0.7)) +
+  scale_fill_gradient(low = "red", high = "white", limits = c(0, 0.05), name = "adj. p-value")
+
+```
+
+
+## MCMDLN vs. nHEM
+
+### Gene ontology
+
+#### Biological Process
+
+```{r MCMDLNvsHEM_import, warning=FALSE}
+out.dir <- "./results/FA/MCMDLN_vs_nHEM/"
+
+dir.create(out.dir)
+
+res.DLNvsHEM <- read.csv("results/DESeq/MCMDLN_vs_nHEM_unfiltered.csv") %>%
+  as_tibble() %>%
+  arrange(desc(log2FoldChange))
+
+gene_list.DLNvsHEM <- res.DLNvsHEM$log2FoldChange
+names(gene_list.DLNvsHEM) <- res.DLNvsHEM$ENSEMBL
+
+```
+
+
+```{r MCMDLNvsHEM_go_bp, warning=FALSE}
+
+
+gseGO.DLNvsHEM.BP <- gseGO(gene_list.DLNvsHEM,
+                          ont = "BP",
+                          OrgDb = org.Hs.eg.db,
+                          keyType = "ENSEMBL",
+                          maxGSSize = 500,
+                          minGSSize = 15)
+
+gseGO.DLNvsHEM.BP <- simplify(gseGO.DLNvsHEM.BP)
+gseGO.DLNvsHEM.BP <- setReadable(gseGO.DLNvsHEM.BP, "org.Hs.eg.db", "ENSEMBL")
+gseGO.DLNvsHEM.BP
+
+write.csv(data.frame(gseGO.DLNvsHEM.BP), file = paste0(out.dir, "gsea_go_bp.csv"), row.names = F)
+
+MCMDLNvsHEM.go_bp.plot <- nrow(gseGO.DLNvsHEM.BP) > 0
+
+```
+
+```{r MCMDLNvsHEM_go_bp_dotplot, eval=MCMDLNvsHEM.go_bp.plot, fig.asp=1.25}
+
+dotplot(gseGO.DLNvsHEM.BP, showCategory = 15, size = NULL, split = ".sign", font.size = 10) + 
+  facet_grid(~.sign) +
+  scale_fill_gradient(low = "red", high = "white", limits = c(0, 0.05), name = "adj. p-value")
+
+```
+
+```{r MCMDLNvsHEM_go_bp_netplot, eval=MCMDLNvsHEM.go_bp.plot, fig.asp=1}
+
+cnetplot(gseGO.DLNvsHEM.BP, showCategory = 5, color.params = list(foldChange = gene_list.DLNvsHEM),
+         cex.params = list(category_label = 0.6, gene_label = 0.4)) +
+  scale_color_gradient2(low = "blue", mid = "white", high = "red", limits = c(-2, 2), name = "Fold Change", oob = scales::squish)
+
+```
+
+```{r MCMDLNvsHEM_go_bp_mapplot, eval=MCMDLNvsHEM.go_bp.plot, fig.asp=1}
+gseGO.DLNvsHEM.BP.pwts <- pairwise_termsim(gseGO.DLNvsHEM.BP)
+
+emapplot(gseGO.DLNvsHEM.BP.pwts, force = 1.5,
+         cex.params = list(category_label = 0.7)) +
+  scale_fill_gradient(low = "red", high = "white", limits = c(0, 0.05), name = "adj. p-value")
+```
+
+#### Cellular Component
+
+```{r MCMDLNvsHEM_go_cc, warning=FALSE}
+  
+
+gseGO.DLNvsHEM.CC <- gseGO(gene_list.DLNvsHEM,
+                          ont = "CC",
+                          OrgDb = org.Hs.eg.db,
+                          keyType = "ENSEMBL",
+                          maxGSSize = 500,
+                          minGSSize = 15)
+
+gseGO.DLNvsHEM.CC <- simplify(gseGO.DLNvsHEM.CC)
+gseGO.DLNvsHEM.CC <- setReadable(gseGO.DLNvsHEM.CC, "org.Hs.eg.db", "ENSEMBL")
+gseGO.DLNvsHEM.CC
+
+write.csv(data.frame(gseGO.DLNvsHEM.CC), file = paste0(out.dir, "gsea_go_cc.csv"), row.names = F)
+
+MCMDLNvsHEM.go_cc.plot <- nrow(gseGO.DLNvsHEM.CC) > 0
+
+```
+
+```{r MCMDLNvsHEM_go_cc_dotplot, eval=MCMDLNvsHEM.go_cc.plot, fig.asp=0.9}
+
+dotplot(gseGO.DLNvsHEM.CC, showCategory = 15, size = NULL, split = ".sign", font.size = 10) + 
+  facet_grid(~.sign) +
+  scale_fill_gradient(low = "red", high = "white", limits = c(0, 0.05), name = "adj. p-value")
+
+```
+
+```{r MCMDLNvsHEM_go_cc_netplot, eval=MCMDLNvsHEM.go_cc.plot, fig.asp=1}
+
+cnetplot(gseGO.DLNvsHEM.CC, showCategory = 5, color.params = list(foldChange = gene_list.DLNvsHEM),
+         cex.params = list(category_label = 0.6, gene_label = 0.4)) +
+  scale_color_gradient2(low = "blue", mid = "white", high = "red", limits = c(-2, 2), name = "Fold Change", oob = scales::squish)
+
+```
+
+```{r MCMDLNvsHEM_go_cc_mapplot, eval=MCMDLNvsHEM.go_cc.plot, fig.asp=1}
+gseGO.DLNvsHEM.CC.pwts <- pairwise_termsim(gseGO.DLNvsHEM.CC)
+
+emapplot(gseGO.DLNvsHEM.CC.pwts, force = 1.5,
+         cex.params = list(category_label = 0.7)) +
+  scale_fill_gradient(low = "red", high = "white", limits = c(0, 0.05), name = "adj. p-value")
+```
+
+#### Molecular Function
+
+```{r MCMDLNvsHEM_go_mf, warning=FALSE}
+  
+
+gseGO.DLNvsHEM.MF <- gseGO(gene_list.DLNvsHEM,
+                          ont = "MF",
+                          OrgDb = org.Hs.eg.db,
+                          keyType = "ENSEMBL",
+                          maxGSSize = 500,
+                          minGSSize = 15)
+
+gseGO.DLNvsHEM.MF <- simplify(gseGO.DLNvsHEM.MF)
+gseGO.DLNvsHEM.MF <- setReadable(gseGO.DLNvsHEM.MF, "org.Hs.eg.db", "ENSEMBL")
+gseGO.DLNvsHEM.MF
+
+write.csv(data.frame(gseGO.DLNvsHEM.MF), file = paste0(out.dir, "gsea_go_mf.csv"), row.names = F)
+
+MCMDLNvsHEM.go_mf.plot <- nrow(gseGO.DLNvsHEM.MF) > 0
+
+```
+
+```{r MCMDLNvsHEM_go_mf_dotplot, eval=MCMDLNvsHEM.go_mf.plot, fig.asp=1.2}
+
+gseGO.DLNvsHEM.MF.plot <- gseGO.DLNvsHEM.MF
+gseGO.DLNvsHEM.MF.plot %<>% mutate(Description = ifelse(nchar(Description) <= 75, Description, str_trunc(Description, 75)))
+
+dotplot(gseGO.DLNvsHEM.MF.plot, showCategory = 15, size = NULL, split = ".sign", font.size = 10) + 
+  facet_grid(~.sign) +
+  scale_fill_gradient(low = "red", high = "white", limits = c(0, 0.05), name = "adj. p-value")
+
+```
+
+```{r MCMDLNvsHEM_go_mf_netplot, eval=MCMDLNvsHEM.go_mf.plot, fig.asp=1}
+
+cnetplot(gseGO.DLNvsHEM.MF, showCategory = 5, color.params = list(foldChange = gene_list.DLNvsHEM),
+         cex.params = list(category_label = 0.6, gene_label = 0.4)) +
+  scale_color_gradient2(low = "blue", mid = "white", high = "red", limits = c(-2, 2), name = "Fold Change", oob = scales::squish)
+
+```
+
+```{r MCMDLNvsHEM_go_mf_mapplot, eval=MCMDLNvsHEM.go_mf.plot, fig.asp=1}
+gseGO.DLNvsHEM.MF.pwts <- pairwise_termsim(gseGO.DLNvsHEM.MF)
+
+emapplot(gseGO.DLNvsHEM.MF.pwts, force = 1.5,
+         cex.params = list(category_label = 0.7)) +
+  scale_fill_gradient(low = "red", high = "white", limits = c(0, 0.05), name = "adj. p-value")
+```
+
+### KEGG (Kyoto Encyclopedia of Genes and Genomes)
+
+```{r MCMDLNvsHEM_translate_ids, warning=FALSE}
+ids <- bitr(names(gene_list.DLNvsHEM), fromType = "ENSEMBL", toType = "ENTREZID", OrgDb = org.Hs.eg.db)
+ids <- ids[!duplicated(ids$ENSEMBL),]
+
+gene_list.DLNvsHEM.entrez <- gene_list.DLNvsHEM[names(gene_list.DLNvsHEM) %in% ids$ENSEMBL]
+names(gene_list.DLNvsHEM.entrez) <- ids$ENTREZID
+gene_list.DLNvsHEM.entrez <- gene_list.DLNvsHEM.entrez[!duplicated(names(gene_list.DLNvsHEM.entrez))]
+
+```
+
+
+```{r MCMDLNvsHEM_kegg, warning=FALSE}
+
+
+gseKEGG.DLNvsHEM <- gseKEGG(gene_list.DLNvsHEM.entrez,
+                         organism = "hsa",
+                         keyType = "ncbi-geneid",
+                         eps = 0,
+                         maxGSSize = 500,
+                         minGSSize = 15)
+
+gseKEGG.DLNvsHEM <- setReadable(gseKEGG.DLNvsHEM, "org.Hs.eg.db", "ENTREZID")
+gseKEGG.DLNvsHEM
+
+write.csv(data.frame(gseKEGG.DLNvsHEM), file = paste0(out.dir, "gsea_kegg.csv"), row.names = F)
+
+MCMDLNvsHEM.kegg.plot <- nrow(gseKEGG.DLNvsHEM) > 0
+
+```
+
+
+```{r MCMDLNvsHEM_kegg_dotplot, eval=MCMDLNvsHEM.kegg.plot, fig.asp=0.9}
+
+dotplot(gseKEGG.DLNvsHEM, showCategory = 15, size = NULL, split = ".sign", font.size = 9, label_format = 40) + 
+  facet_grid(~.sign) +
+  scale_fill_gradient(low = "red", high = "white", limits = c(0, 0.05), name = "adj. p-value")
+
+```
+
+```{r MCMDLNvsHEM_kegg_netplot, eval=MCMDLNvsHEM.kegg.plot, fig.asp=1}
+
+cnetplot(gseKEGG.DLNvsHEM, showCategory = 5, color.params = list(foldChange = gene_list.DLNvsHEM.entrez),
+         cex.params = list(category_label = 0.6, gene_label = 0.4)) +
+  scale_color_gradient2(low = "blue", mid = "white", high = "red", limits = c(-2, 2), name = "Fold Change", oob = scales::squish)
+
+```
+
+```{r MCMDLNvsHEM_kegg_mapplot, eval=MCMDLNvsHEM.kegg.plot, fig.asp=1}
+gseKEGG.DLNvsHEM.pwts <- pairwise_termsim(gseKEGG.DLNvsHEM)
+
+emapplot(gseKEGG.DLNvsHEM.pwts, force = 1.5,
+         cex.params = list(category_label = 0.8)) +
+  scale_fill_gradient(low = "red", high = "white", limits = c(0, 0.05), name = "adj. p-value")
+
+```
+
+```{r MCMDLNvsHEM_kegg_pathview, eval=MCMDLNvsHEM.kegg.plot}
+
+pathway <- "hsa04110"
+
+pathview(gene.data = gene_list.DLNvsHEM.entrez, pathway.id = pathway, 
+         species = "hsa", low = list(gene = "orangered", cpd = "orangered"),
+         mid = list(gene = "white", cpd = "white"), 
+         high = list(gene = "deepskyblue", cpd = "deepskyblue"), na.col = "grey")
+
+filename <- paste0(pathway, ".pathview.png")
+
+file.rename(filename, paste0(out.dir, filename))
+
+knitr::include_graphics(paste0(out.dir, filename))
+
+```
+
+### Disease ontology
+
+```{r MCMDLNvsHEM_do, warning=FALSE}
+
+
+gseDO.DLNvsHEM <- gseDO(gene_list.DLNvsHEM.entrez,
+                     eps = 0,
+                     maxGSSize = 500,
+                     minGSSize = 15)
+
+gseDO.DLNvsHEM <- setReadable(gseDO.DLNvsHEM, "org.Hs.eg.db", "ENTREZID")
+gseDO.DLNvsHEM
+
+write.csv(data.frame(gseDO.DLNvsHEM), file = paste0(out.dir, "gsea_do.csv"), row.names = F)
+
+MCMDLNvsHEM.DO.plot <- nrow(gseDO.DLNvsHEM) > 0
+
+```
+
+```{r MCMDLNvsHEM_do_dotplot, eval=MCMDLNvsHEM.DO.plot, fig.asp=0.9}
+
+dotplot(gseDO.DLNvsHEM, showCategory = 15, size = NULL, split = ".sign", font.size = 9, label_format = 40) + 
+  facet_grid(~.sign) +
+  scale_fill_gradient(low = "red", high = "white", limits = c(0, 0.05), name = "adj. p-value")
+
+```
+
+```{r MCMDLNvsHEM_do_netplot, eval=MCMDLNvsHEM.DO.plot, fig.asp=1}
+
+cnetplot(gseDO.DLNvsHEM, showCategory = 5, color.params = list(foldChange = gene_list.DLNvsHEM.entrez),
+         cex.params = list(category_label = 0.6, gene_label = 0.4)) +
+  scale_color_gradient2(low = "blue", mid = "white", high = "red", limits = c(-2, 2), name = "Fold Change", oob = scales::squish)
+
+```
+
+```{r MCMDLNvsHEM_do_mapplot, eval=MCMDLNvsHEM.DO.plot, fig.asp=1}
+
+gseDO.DLNvsHEM.pwts <- pairwise_termsim(gseDO.DLNvsHEM)
+
+emapplot(gseDO.DLNvsHEM.pwts, force = 1.5,
+         cex.params = list(category_label = 0.7)) +
+  scale_fill_gradient(low = "red", high = "white", limits = c(0, 0.05), name = "adj. p-value")
+
+```
+
+
+## MCMDLN vs. MCM1G
+
+### Gene ontology
+
+#### Biological Process
+
+```{r MCMDLNvsMCM1G_import, warning=FALSE}
+out.dir <- "./results/FA/MCMDLN_vs_MCM1G/"
+
+dir.create(out.dir)
+
+res.DLNvs1G <- read.csv("results/DESeq/MCMDLN_vs_MCM1G_unfiltered.csv") %>%
+  as_tibble() %>%
+  arrange(desc(log2FoldChange))
+
+gene_list.DLNvs1G <- res.DLNvs1G$log2FoldChange
+names(gene_list.DLNvs1G) <- res.DLNvs1G$ENSEMBL
+
+```
+
+
+```{r MCMDLNvsMCM1G_go_bp, warning=FALSE}
+
+
+gseGO.DLNvs1G.BP <- gseGO(gene_list.DLNvs1G,
+                          ont = "BP",
+                          OrgDb = org.Hs.eg.db,
+                          keyType = "ENSEMBL",
+                          maxGSSize = 500,
+                          minGSSize = 15)
+
+gseGO.DLNvs1G.BP <- simplify(gseGO.DLNvs1G.BP)
+gseGO.DLNvs1G.BP <- setReadable(gseGO.DLNvs1G.BP, "org.Hs.eg.db", "ENSEMBL")
+gseGO.DLNvs1G.BP
+
+write.csv(data.frame(gseGO.DLNvs1G.BP), file = paste0(out.dir, "gsea_go_bp.csv"), row.names = F)
+
+MCMDLNvsMCM1G.go_bp.plot <- nrow(gseGO.DLNvs1G.BP) > 0
+
+```
+
+```{r MCMDLNvsMCM1G_go_bp_dotplot, eval=MCMDLNvsMCM1G.go_bp.plot, fig.asp=1.25}
+
+dotplot(gseGO.DLNvs1G.BP, showCategory = 15, size = NULL, split = ".sign", font.size = 10) + 
+  facet_grid(~.sign) +
+  scale_fill_gradient(low = "red", high = "white", limits = c(0, 0.05), name = "adj. p-value")
+
+```
+
+```{r MCMDLNvsMCM1G_go_bp_netplot, eval=MCMDLNvsMCM1G.go_bp.plot, fig.asp=1.2}
+
+cnetplot(gseGO.DLNvs1G.BP, showCategory = 5, color.params = list(foldChange = gene_list.DLNvs1G),
+         cex.params = list(category_label = 0.6, gene_label = 0.4)) +
+  scale_color_gradient2(low = "blue", mid = "white", high = "red", limits = c(-2, 2), name = "Fold Change", oob = scales::squish)
+
+```
+
+```{r MCMDLNvsMCM1G_go_bp_mapplot, eval=MCMDLNvsMCM1G.go_bp.plot, fig.asp=1}
+gseGO.DLNvs1G.BP.pwts <- pairwise_termsim(gseGO.DLNvs1G.BP)
+
+emapplot(gseGO.DLNvs1G.BP.pwts, force = 1.5,
+         cex.params = list(category_label = 0.7)) +
+  scale_fill_gradient(low = "red", high = "white", limits = c(0, 0.05), name = "adj. p-value")
+```
+
+#### Cellular Component
+
+```{r MCMDLNvsMCM1G_go_cc, warning=FALSE}
+  
+
+gseGO.DLNvs1G.CC <- gseGO(gene_list.DLNvs1G,
+                          ont = "CC",
+                          OrgDb = org.Hs.eg.db,
+                          keyType = "ENSEMBL",
+                          maxGSSize = 500,
+                          minGSSize = 15)
+
+gseGO.DLNvs1G.CC <- simplify(gseGO.DLNvs1G.CC)
+gseGO.DLNvs1G.CC <- setReadable(gseGO.DLNvs1G.CC, "org.Hs.eg.db", "ENSEMBL")
+gseGO.DLNvs1G.CC
+
+write.csv(data.frame(gseGO.DLNvs1G.CC), file = paste0(out.dir, "gsea_go_cc.csv"), row.names = F)
+
+MCMDLNvsMCM1G.go_cc.plot <- nrow(gseGO.DLNvs1G.CC) > 0
+
+```
+
+```{r MCMDLNvsMCM1G_go_cc_dotplot, eval=MCMDLNvsMCM1G.go_cc.plot, fig.asp=0.9}
+
+dotplot(gseGO.DLNvs1G.CC, showCategory = 15, size = NULL, split = ".sign", font.size = 10) + 
+  facet_grid(~.sign) +
+  scale_fill_gradient(low = "red", high = "white", limits = c(0, 0.05), name = "adj. p-value")
+
+```
+
+```{r MCMDLNvsMCM1G_go_cc_netplot, eval=MCMDLNvsMCM1G.go_cc.plot, fig.asp=1.2}
+
+cnetplot(gseGO.DLNvs1G.CC, showCategory = 5, color.params = list(foldChange = gene_list.DLNvs1G),
+         cex.params = list(category_label = 0.6, gene_label = 0.4)) +
+  scale_color_gradient2(low = "blue", mid = "white", high = "red", limits = c(-2, 2), name = "Fold Change", oob = scales::squish)
+
+```
+
+```{r MCMDLNvsMCM1G_go_cc_mapplot, eval=MCMDLNvsMCM1G.go_cc.plot, fig.asp=1}
+gseGO.DLNvs1G.CC.pwts <- pairwise_termsim(gseGO.DLNvs1G.CC)
+
+emapplot(gseGO.DLNvs1G.CC.pwts, force = 1.5,
+         cex.params = list(category_label = 0.7)) +
+  scale_fill_gradient(low = "red", high = "white", limits = c(0, 0.05), name = "adj. p-value")
+```
+
+#### Molecular Function
+
+```{r MCMDLNvsMCM1G_go_mf, warning=FALSE}
+  
+
+gseGO.DLNvs1G.MF <- gseGO(gene_list.DLNvs1G,
+                          ont = "MF",
+                          OrgDb = org.Hs.eg.db,
+                          keyType = "ENSEMBL",
+                          maxGSSize = 500,
+                          minGSSize = 15)
+
+gseGO.DLNvs1G.MF <- simplify(gseGO.DLNvs1G.MF)
+gseGO.DLNvs1G.MF <- setReadable(gseGO.DLNvs1G.MF, "org.Hs.eg.db", "ENSEMBL")
+gseGO.DLNvs1G.MF
+
+write.csv(data.frame(gseGO.DLNvs1G.MF), file = paste0(out.dir, "gsea_go_mf.csv"), row.names = F)
+
+MCMDLNvsMCM1G.go_mf.plot <- nrow(gseGO.DLNvs1G.MF) > 0
+
+```
+
+```{r MCMDLNvsMCM1G_go_mf_dotplot, eval=MCMDLNvsMCM1G.go_mf.plot, fig.asp=0.5}
+
+dotplot(gseGO.DLNvs1G.MF, showCategory = 15, size = NULL, split = ".sign", font.size = 10) + 
+  facet_grid(~.sign) +
+  scale_fill_gradient(low = "red", high = "white", limits = c(0, 0.05), name = "adj. p-value")
+
+```
+
+```{r MCMDLNvsMCM1G_go_mf_netplot, eval=MCMDLNvsMCM1G.go_mf.plot, fig.asp=1}
+
+cnetplot(gseGO.DLNvs1G.MF, showCategory = 5, color.params = list(foldChange = gene_list.DLNvs1G),
+         cex.params = list(category_label = 0.6, gene_label = 0.4)) +
+  scale_color_gradient2(low = "blue", mid = "white", high = "red", limits = c(-2, 2), name = "Fold Change", oob = scales::squish)
+
+```
+
+```{r MCMDLNvsMCM1G_go_mf_mapplot, eval=MCMDLNvsMCM1G.go_mf.plot, fig.asp=1}
+gseGO.DLNvs1G.MF.pwts <- pairwise_termsim(gseGO.DLNvs1G.MF)
+
+emapplot(gseGO.DLNvs1G.MF.pwts, force = 1.5,
+         cex.params = list(category_label = 0.7)) +
+  scale_fill_gradient(low = "red", high = "white", limits = c(0, 0.05), name = "adj. p-value")
+```
+
+### KEGG (Kyoto Encyclopedia of Genes and Genomes)
+
+```{r MCMDLNvsMCM1G_translate_ids, warning=FALSE}
+ids <- bitr(names(gene_list.DLNvs1G), fromType = "ENSEMBL", toType = "ENTREZID", OrgDb = org.Hs.eg.db)
+ids <- ids[!duplicated(ids$ENSEMBL),]
+
+gene_list.DLNvs1G.entrez <- gene_list.DLNvs1G[names(gene_list.DLNvs1G) %in% ids$ENSEMBL]
+names(gene_list.DLNvs1G.entrez) <- ids$ENTREZID
+gene_list.DLNvs1G.entrez <- gene_list.DLNvs1G.entrez[!duplicated(names(gene_list.DLNvs1G.entrez))]
+
+```
+
+
+```{r MCMDLNvsMCM1G_kegg, warning=FALSE}
+
+
+gseKEGG.DLNvs1G <- gseKEGG(gene_list.DLNvs1G.entrez,
+                         organism = "hsa",
+                         keyType = "ncbi-geneid",
+                         eps = 0,
+                         maxGSSize = 500,
+                         minGSSize = 15)
+
+gseKEGG.DLNvs1G <- setReadable(gseKEGG.DLNvs1G, "org.Hs.eg.db", "ENTREZID")
+gseKEGG.DLNvs1G
+
+write.csv(data.frame(gseKEGG.DLNvs1G), file = paste0(out.dir, "gsea_kegg.csv"), row.names = F)
+
+MCMDLNvsMCM1G.kegg.plot <- nrow(gseKEGG.DLNvs1G) > 0
+
+```
+
+
+```{r MCMDLNvsMCM1G_kegg_dotplot, eval=MCMDLNvsMCM1G.kegg.plot, fig.asp=0.6}
+
+dotplot(gseKEGG.DLNvs1G, showCategory = 15, size = NULL, split = ".sign", font.size = 9, label_format = 40) + 
+  facet_grid(~.sign) +
+  scale_fill_gradient(low = "red", high = "white", limits = c(0, 0.05), name = "adj. p-value")
+
+```
+
+```{r MCMDLNvsMCM1G_kegg_netplot, eval=MCMDLNvsMCM1G.kegg.plot, fig.asp=1}
+
+cnetplot(gseKEGG.DLNvs1G, showCategory = 5, color.params = list(foldChange = gene_list.DLNvs1G.entrez),
+         cex.params = list(category_label = 0.6, gene_label = 0.4)) +
+  scale_color_gradient2(low = "blue", mid = "white", high = "red", limits = c(-2, 2), name = "Fold Change", oob = scales::squish)
+
+```
+
+```{r MCMDLNvsMCM1G_kegg_mapplot, eval=MCMDLNvsMCM1G.kegg.plot, fig.asp=1}
+gseKEGG.DLNvs1G.pwts <- pairwise_termsim(gseKEGG.DLNvs1G)
+
+emapplot(gseKEGG.DLNvs1G.pwts, force = 1.5,
+         cex.params = list(category_label = 0.8)) +
+  scale_fill_gradient(low = "red", high = "white", limits = c(0, 0.05), name = "adj. p-value")
+
+```
+
+```{r MCMDLNvsMCM1G_kegg_pathview, eval=MCMDLNvsMCM1G.kegg.plot}
+
+pathway <- "hsa04110"
+
+pathview(gene.data = gene_list.DLNvs1G.entrez, pathway.id = pathway, 
+         species = "hsa", low = list(gene = "orangered", cpd = "orangered"),
+         mid = list(gene = "white", cpd = "white"), 
+         high = list(gene = "deepskyblue", cpd = "deepskyblue"), na.col = "grey")
+
+filename <- paste0(pathway, ".pathview.png")
+
+file.rename(filename, paste0(out.dir, filename))
+
+knitr::include_graphics(paste0(out.dir, filename))
+
+```
+
+### Disease ontology
+
+```{r MCMDLNvsMCM1G_do, warning=FALSE}
+
+
+gseDO.DLNvs1G <- gseDO(gene_list.DLNvs1G.entrez,
+                     eps = 0,
+                     maxGSSize = 500,
+                     minGSSize = 15)
+
+gseDO.DLNvs1G <- setReadable(gseDO.DLNvs1G, "org.Hs.eg.db", "ENTREZID")
+gseDO.DLNvs1G
+
+write.csv(data.frame(gseDO.DLNvs1G), file = paste0(out.dir, "gsea_do.csv"), row.names = F)
+
+MCMDLNvsMCM1G.DO.plot <- nrow(gseDO.DLNvs1G) > 0
+
+```
+
+```{r MCMDLNvsMCM1G_do_dotplot, eval=MCMDLNvsMCM1G.DO.plot, fig.asp=0.6}
+
+dotplot(gseDO.DLNvs1G, showCategory = 15, size = NULL, split = ".sign", font.size = 9, label_format = 40) + 
+  facet_grid(~.sign) +
+  scale_fill_gradient(low = "red", high = "white", limits = c(0, 0.05), name = "adj. p-value")
+
+```
+
+```{r MCMDLNvsMCM1G_do_netplot, eval=MCMDLNvsMCM1G.DO.plot, fig.asp=1}
+
+cnetplot(gseDO.DLNvs1G, showCategory = 5, color.params = list(foldChange = gene_list.DLNvs1G.entrez),
+         cex.params = list(category_label = 0.6, gene_label = 0.4)) +
+  scale_color_gradient2(low = "blue", mid = "white", high = "red", limits = c(-2, 2), name = "Fold Change", oob = scales::squish)
+
+```
+
+```{r MCMDLNvsMCM1G_do_mapplot, eval=MCMDLNvsMCM1G.DO.plot, fig.asp=1}
+
+gseDO.DLNvs1G.pwts <- pairwise_termsim(gseDO.DLNvs1G)
+
+emapplot(gseDO.DLNvs1G.pwts, force = 1.5,
+         cex.params = list(category_label = 0.7)) +
+  scale_fill_gradient(low = "red", high = "white", limits = c(0, 0.05), name = "adj. p-value")
+
+```
+
+
+## MCMDLN3D vs. MCMDLN
+
+### Gene ontology
+
+#### Biological Process
+
+```{r MCMDLN3DvsMCMDLN_import, warning=FALSE}
+out.dir <- "./results/FA/MCMDLN3D_vs_MCMDLN/"
+
+dir.create(out.dir)
+
+res.DLN3DvsDLN <- read.csv("results/DESeq/MCMDLN3D_vs_MCMDLN_unfiltered.csv") %>%
+  as_tibble() %>%
+  arrange(desc(log2FoldChange))
+
+gene_list.DLN3DvsDLN <- res.DLN3DvsDLN$log2FoldChange
+names(gene_list.DLN3DvsDLN) <- res.DLN3DvsDLN$ENSEMBL
+
+```
+
+
+```{r MCMDLN3DvsMCMDLN_go_bp, warning=FALSE}
+
+
+gseGO.DLN3DvsDLN.BP <- gseGO(gene_list.DLN3DvsDLN,
+                          ont = "BP",
+                          OrgDb = org.Hs.eg.db,
+                          keyType = "ENSEMBL",
+                          maxGSSize = 500,
+                          minGSSize = 15)
+
+gseGO.DLN3DvsDLN.BP <- simplify(gseGO.DLN3DvsDLN.BP)
+gseGO.DLN3DvsDLN.BP <- setReadable(gseGO.DLN3DvsDLN.BP, "org.Hs.eg.db", "ENSEMBL")
+gseGO.DLN3DvsDLN.BP
+
+write.csv(data.frame(gseGO.DLN3DvsDLN.BP), file = paste0(out.dir, "gsea_go_bp.csv"), row.names = F)
+
+MCMDLN3DvsMCMDLN.go_bp.plot <- nrow(gseGO.DLN3DvsDLN.BP) > 0
+
+```
+
+```{r MCMDLN3DvsMCMDLN_go_bp_dotplot, eval=MCMDLN3DvsMCMDLN.go_bp.plot, fig.asp=1.25}
+
+dotplot(gseGO.DLN3DvsDLN.BP, showCategory = 15, size = NULL, split = ".sign", font.size = 10) + 
+  facet_grid(~.sign) +
+  scale_fill_gradient(low = "red", high = "white", limits = c(0, 0.05), name = "adj. p-value")
+
+```
+
+```{r MCMDLN3DvsMCMDLN_go_bp_netplot, eval=MCMDLN3DvsMCMDLN.go_bp.plot, fig.asp=1.2}
+
+cnetplot(gseGO.DLN3DvsDLN.BP, showCategory = 5, color.params = list(foldChange = gene_list.DLN3DvsDLN),
+         cex.params = list(category_label = 0.6, gene_label = 0.4)) +
+  scale_color_gradient2(low = "blue", mid = "white", high = "red", limits = c(-2, 2), name = "Fold Change", oob = scales::squish)
+
+```
+
+```{r MCMDLN3DvsMCMDLN_go_bp_mapplot, eval=MCMDLN3DvsMCMDLN.go_bp.plot, fig.asp=1}
+gseGO.DLN3DvsDLN.BP.pwts <- pairwise_termsim(gseGO.DLN3DvsDLN.BP)
+
+emapplot(gseGO.DLN3DvsDLN.BP.pwts, force = 1.5,
+         cex.params = list(category_label = 0.7)) +
+  scale_fill_gradient(low = "red", high = "white", limits = c(0, 0.05), name = "adj. p-value")
+```
+
+#### Cellular Component
+
+```{r MCMDLN3DvsMCMDLN_go_cc, warning=FALSE}
+  
+
+gseGO.DLN3DvsDLN.CC <- gseGO(gene_list.DLN3DvsDLN,
+                          ont = "CC",
+                          OrgDb = org.Hs.eg.db,
+                          keyType = "ENSEMBL",
+                          maxGSSize = 500,
+                          minGSSize = 15)
+
+gseGO.DLN3DvsDLN.CC <- simplify(gseGO.DLN3DvsDLN.CC)
+gseGO.DLN3DvsDLN.CC <- setReadable(gseGO.DLN3DvsDLN.CC, "org.Hs.eg.db", "ENSEMBL")
+gseGO.DLN3DvsDLN.CC
+
+write.csv(data.frame(gseGO.DLN3DvsDLN.CC), file = paste0(out.dir, "gsea_go_cc.csv"), row.names = F)
+
+MCMDLN3DvsMCMDLN.go_cc.plot <- nrow(gseGO.DLN3DvsDLN.CC) > 0
+
+```
+
+```{r MCMDLN3DvsMCMDLN_go_cc_dotplot, eval=MCMDLN3DvsMCMDLN.go_cc.plot, fig.asp=1}
+
+dotplot(gseGO.DLN3DvsDLN.CC, showCategory = 15, size = NULL, split = ".sign", font.size = 10) + 
+  facet_grid(~.sign) +
+  scale_fill_gradient(low = "red", high = "white", limits = c(0, 0.05), name = "adj. p-value")
+
+```
+
+```{r MCMDLN3DvsMCMDLN_go_cc_netplot, eval=MCMDLN3DvsMCMDLN.go_cc.plot, fig.asp=1.2}
+
+cnetplot(gseGO.DLN3DvsDLN.CC, showCategory = 5, color.params = list(foldChange = gene_list.DLN3DvsDLN),
+         cex.params = list(category_label = 0.6, gene_label = 0.4)) +
+  scale_color_gradient2(low = "blue", mid = "white", high = "red", limits = c(-2, 2), name = "Fold Change", oob = scales::squish)
+
+```
+
+```{r MCMDLN3DvsMCMDLN_go_cc_mapplot, eval=MCMDLN3DvsMCMDLN.go_cc.plot, fig.asp=1}
+gseGO.DLN3DvsDLN.CC.pwts <- pairwise_termsim(gseGO.DLN3DvsDLN.CC)
+
+emapplot(gseGO.DLN3DvsDLN.CC.pwts, force = 1.5,
+         cex.params = list(category_label = 0.7)) +
+  scale_fill_gradient(low = "red", high = "white", limits = c(0, 0.05), name = "adj. p-value")
+```
+
+#### Molecular Function
+
+```{r MCMDLN3DvsMCMDLN_go_mf, warning=FALSE}
+  
+
+gseGO.DLN3DvsDLN.MF <- gseGO(gene_list.DLN3DvsDLN,
+                          ont = "MF",
+                          OrgDb = org.Hs.eg.db,
+                          keyType = "ENSEMBL",
+                          maxGSSize = 500,
+                          minGSSize = 15)
+
+gseGO.DLN3DvsDLN.MF <- simplify(gseGO.DLN3DvsDLN.MF)
+gseGO.DLN3DvsDLN.MF <- setReadable(gseGO.DLN3DvsDLN.MF, "org.Hs.eg.db", "ENSEMBL")
+gseGO.DLN3DvsDLN.MF
+
+write.csv(data.frame(gseGO.DLN3DvsDLN.MF), file = paste0(out.dir, "gsea_go_mf.csv"), row.names = F)
+
+MCMDLN3DvsMCMDLN.go_mf.plot <- nrow(gseGO.DLN3DvsDLN.MF) > 0
+
+```
+
+```{r MCMDLN3DvsMCMDLN_go_mf_dotplot, eval=MCMDLN3DvsMCMDLN.go_mf.plot, fig.asp=1.2}
+
+dotplot(gseGO.DLN3DvsDLN.MF, showCategory = 15, size = NULL, split = ".sign", font.size = 10) + 
+  facet_grid(~.sign) +
+  scale_fill_gradient(low = "red", high = "white", limits = c(0, 0.05), name = "adj. p-value")
+
+```
+
+```{r MCMDLN3DvsMCMDLN_go_mf_netplot, eval=MCMDLN3DvsMCMDLN.go_mf.plot, fig.asp=1}
+
+cnetplot(gseGO.DLN3DvsDLN.MF, showCategory = 5, color.params = list(foldChange = gene_list.DLN3DvsDLN),
+         cex.params = list(category_label = 0.6, gene_label = 0.4)) +
+  scale_color_gradient2(low = "blue", mid = "white", high = "red", limits = c(-2, 2), name = "Fold Change", oob = scales::squish)
+
+```
+
+```{r MCMDLN3DvsMCMDLN_go_mf_mapplot, eval=MCMDLN3DvsMCMDLN.go_mf.plot, fig.asp=1}
+gseGO.DLN3DvsDLN.MF.pwts <- pairwise_termsim(gseGO.DLN3DvsDLN.MF)
+
+emapplot(gseGO.DLN3DvsDLN.MF.pwts, force = 1.5,
+         cex.params = list(category_label = 0.7)) +
+  scale_fill_gradient(low = "red", high = "white", limits = c(0, 0.05), name = "adj. p-value")
+```
+
+### KEGG (Kyoto Encyclopedia of Genes and Genomes)
+
+```{r MCMDLN3DvsMCMDLN_translate_ids, warning=FALSE}
+ids <- bitr(names(gene_list.DLN3DvsDLN), fromType = "ENSEMBL", toType = "ENTREZID", OrgDb = org.Hs.eg.db)
+ids <- ids[!duplicated(ids$ENSEMBL),]
+
+gene_list.DLN3DvsDLN.entrez <- gene_list.DLN3DvsDLN[names(gene_list.DLN3DvsDLN) %in% ids$ENSEMBL]
+names(gene_list.DLN3DvsDLN.entrez) <- ids$ENTREZID
+gene_list.DLN3DvsDLN.entrez <- gene_list.DLN3DvsDLN.entrez[!duplicated(names(gene_list.DLN3DvsDLN.entrez))]
+
+```
+
+
+```{r MCMDLN3DvsMCMDLN_kegg, warning=FALSE}
+
+
+gseKEGG.DLN3DvsDLN <- gseKEGG(gene_list.DLN3DvsDLN.entrez,
+                         organism = "hsa",
+                         keyType = "ncbi-geneid",
+                         eps = 0,
+                         maxGSSize = 500,
+                         minGSSize = 15)
+
+gseKEGG.DLN3DvsDLN <- setReadable(gseKEGG.DLN3DvsDLN, "org.Hs.eg.db", "ENTREZID")
+gseKEGG.DLN3DvsDLN
+
+write.csv(data.frame(gseKEGG.DLN3DvsDLN), file = paste0(out.dir, "gsea_kegg.csv"), row.names = F)
+
+MCMDLN3DvsMCMDLN.kegg.plot <- nrow(gseKEGG.DLN3DvsDLN) > 0
+
+```
+
+
+```{r MCMDLN3DvsMCMDLN_kegg_dotplot, eval=MCMDLN3DvsMCMDLN.kegg.plot, fig.asp=0.9}
+
+dotplot(gseKEGG.DLN3DvsDLN, showCategory = 15, size = NULL, split = ".sign", font.size = 9, label_format = 40) + 
+  facet_grid(~.sign) +
+  scale_fill_gradient(low = "red", high = "white", limits = c(0, 0.05), name = "adj. p-value")
+
+```
+
+```{r MCMDLN3DvsMCMDLN_kegg_netplot, eval=MCMDLN3DvsMCMDLN.kegg.plot, fig.asp=1}
+
+cnetplot(gseKEGG.DLN3DvsDLN, showCategory = 5, color.params = list(foldChange = gene_list.DLN3DvsDLN.entrez),
+         cex.params = list(category_label = 0.6, gene_label = 0.4)) +
+  scale_color_gradient2(low = "blue", mid = "white", high = "red", limits = c(-2, 2), name = "Fold Change", oob = scales::squish)
+
+```
+
+```{r MCMDLN3DvsMCMDLN_kegg_mapplot, eval=MCMDLN3DvsMCMDLN.kegg.plot, fig.asp=1}
+gseKEGG.DLN3DvsDLN.pwts <- pairwise_termsim(gseKEGG.DLN3DvsDLN)
+
+emapplot(gseKEGG.DLN3DvsDLN.pwts, force = 1.5,
+         cex.params = list(category_label = 0.8)) +
+  scale_fill_gradient(low = "red", high = "white", limits = c(0, 0.05), name = "adj. p-value")
+
+```
+
+```{r MCMDLN3DvsMCMDLN_kegg_pathview, eval=MCMDLN3DvsMCMDLN.kegg.plot}
+
+pathway <- "hsa04110"
+
+pathview(gene.data = gene_list.DLN3DvsDLN.entrez, pathway.id = pathway, 
+         species = "hsa", low = list(gene = "orangered", cpd = "orangered"),
+         mid = list(gene = "white", cpd = "white"), 
+         high = list(gene = "deepskyblue", cpd = "deepskyblue"), na.col = "grey")
+
+filename <- paste0(pathway, ".pathview.png")
+
+file.rename(filename, paste0(out.dir, filename))
+
+knitr::include_graphics(paste0(out.dir, filename))
+
+```
+
+### Disease ontology
+
+```{r MCMDLN3DvsMCMDLN_do, warning=FALSE}
+
+
+gseDO.DLN3DvsDLN <- gseDO(gene_list.DLN3DvsDLN.entrez,
+                     eps = 0,
+                     maxGSSize = 500,
+                     minGSSize = 15)
+
+gseDO.DLN3DvsDLN <- setReadable(gseDO.DLN3DvsDLN, "org.Hs.eg.db", "ENTREZID")
+gseDO.DLN3DvsDLN
+
+write.csv(data.frame(gseDO.DLN3DvsDLN), file = paste0(out.dir, "gsea_do.csv"), row.names = F)
+
+MCMDLN3DvsMCMDLN.DO.plot <- nrow(gseDO.DLN3DvsDLN) > 0
+
+```
+
+```{r MCMDLN3DvsMCMDLN_do_dotplot, eval=MCMDLN3DvsMCMDLN.DO.plot, fig.asp=0.7}
+
+dotplot(gseDO.DLN3DvsDLN, showCategory = 15, size = NULL, split = ".sign", font.size = 9, label_format = 40) + 
+  facet_grid(~.sign) +
+  scale_fill_gradient(low = "red", high = "white", limits = c(0, 0.05), name = "adj. p-value")
+
+```
+
+```{r MCMDLN3DvsMCMDLN_do_netplot, eval=MCMDLN3DvsMCMDLN.DO.plot, fig.asp=1}
+
+cnetplot(gseDO.DLN3DvsDLN, showCategory = 5, color.params = list(foldChange = gene_list.DLN3DvsDLN.entrez),
+         cex.params = list(category_label = 0.6, gene_label = 0.4)) +
+  scale_color_gradient2(low = "blue", mid = "white", high = "red", limits = c(-2, 2), name = "Fold Change", oob = scales::squish)
+
+```
+
+```{r MCMDLN3DvsMCMDLN_do_mapplot, eval=MCMDLN3DvsMCMDLN.DO.plot, fig.asp=1}
+
+gseDO.DLN3DvsDLN.pwts <- pairwise_termsim(gseDO.DLN3DvsDLN)
+
+emapplot(gseDO.DLN3DvsDLN.pwts, force = 1.5,
+         cex.params = list(category_label = 0.7)) +
+  scale_fill_gradient(low = "red", high = "white", limits = c(0, 0.05), name = "adj. p-value")
+
+```
