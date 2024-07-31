@@ -92,6 +92,9 @@ normalized_counts = counts(dds, normalized = T)
 
 ```{r DESeq_QC}
 
+# Size Factors for Normalization
+sizeFactors(dds)
+
 # Dispersion plot for QC
 plotDispEsts(dds)
 
