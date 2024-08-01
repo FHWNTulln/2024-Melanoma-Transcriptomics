@@ -1,3 +1,13 @@
+##########################################################################
+# Copyright © 2024 Daniel Zimmermann. <daniel.zimmermann.dz@outlook.com> #
+#                                                                        #
+# You may use, distribute and modify this code under the terms of the    #
+# MIT license.                                                           #
+#                                                                        #
+# You should have received a copy of the MIT license with this file.     #
+# If not, please visit: https://opensource.org/license/mit               #
+##########################################################################
+
 libs <- c("DESeq2", "dplyr", "magrittr", "tidyverse", "RColorBrewer",
           "stringr", "ggplot2", "ggrepel", "ggpubr", "org.Hs.eg.db", 
           "GenomicTools.fileHandler", "ComplexHeatmap", "circlize")

@@ -50,7 +50,8 @@ rsconnect/
 
 *.png
 *.xml
-*.html
 
 data/
 results/
+
+.idea
