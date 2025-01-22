@@ -136,10 +136,10 @@ plot_heatmap <- function(data, color_scale, column_colors, genedata, samples,
   
   if (nrow(data) <= max_rows) {
     hm <- Heatmap(as.matrix(data), col = color_scale,  
-                  name = title, cluster_rows = cluster_rows, column_split = annotation.col$Class,
-                  show_row_dend = TRUE, show_column_names = FALSE, row_labels = annotation.row$Name,
+                  name = title, cluster_rows = cluster_rows, column_split = annotation.col$class,
+                  show_row_dend = TRUE, show_column_names = FALSE, row_labels = annotation.row$GeneSymbol,
                   show_row_names = TRUE, row_title = NULL, column_title = NULL, cluster_columns = cluster_cols, 
-                  top_annotation = HeatmapAnnotation(Class = anno_block(labels = annotation_labels,
+                  top_annotation = HeatmapAnnotation(class = anno_block(labels = annotation_labels,
                                                                         gp = gpar(fill = annotation_colors))),
                   heatmap_legend_param = list(legend_height = unit(10, "cm"),
                                               legend_width = unit(1.5, "cm"),

@@ -270,8 +270,10 @@ plot_heatmap(norm.1GvsHEM.sig, hmap_colors, annotation_colors,
 
 ```{r 1GvsHEM_volcanoplot}
 
-volcanoplot(res.1GvsHEM.tb, title = "MCM1G vs. nHEM", max_labels = vp_max_labels, 
+p <- volcanoplot(res.1GvsHEM.tb, title = "MCM1G vs. nHEM", max_labels = vp_max_labels, 
             lfc_limit = vp_lfc_limit)
+
+plotly::ggplotly(p)
   
 ```
 
