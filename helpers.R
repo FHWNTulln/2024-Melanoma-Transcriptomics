@@ -10,7 +10,7 @@
 
 libs <- c("DESeq2", "dplyr", "magrittr", "tidyverse", "RColorBrewer",
           "stringr", "ggplot2", "ggrepel", "ggpubr", "org.Hs.eg.db", 
-          "GenomicTools.fileHandler", "ComplexHeatmap", "circlize")
+          "GenomicTools.fileHandler", "ComplexHeatmap", "circlize", "plotly")
 
 lapply(libs, library, character.only = TRUE)
 
@@ -228,4 +228,52 @@ volcanoplot <- function(data, title = NA, max_labels = NA, lfc_limit = NA) {
     ylab("adjusted p-value") +
     theme_pubr() +
     theme(legend.position = "none")
+}
+
+
+volcanoplot_interactive <- function(data, alpha = 0.05, minFC = 1, title = NA) {
+  data.plot <- data %>%
+    filter(!is.na(padj)) %>%
+    arrange(padj) %>%
+    mutate(padj = ifelse(padj == 0, .Machine$double.xmin, padj),
+           threshold = padj < alpha & abs(log2FoldChange) >= minFC)
+  
+  
+  p <- plot_ly(data = data.plot, x = ~log2FoldChange, y = ~padj, color = ~threshold, text = ~Name, 
+               type = "scatter", mode = "markers", colors = c("black", "darkred"),
+               hoverinfo = "none",
+               hovertemplate = paste("<b>Gene:</b> %{text}",
+                                     "<br><b>Log2 Fold Change:</b> %{x:.3r}",
+                                     "<br><b>Adj. p-Value:</b> %{y:.2e}<extra></extra>"),
+               width = 960, height = 720) %>%
+    layout(title = title,
+           xaxis = list(title = "Log2 Fold Change", zeroline = F),
+           yaxis = list(title = "Adj. p-Value", type = "log", autorange="reversed",
+                        exponentformat = "power", showexponent = "all"),
+           shapes = list(list(type = "line",
+                              x0 = 0,
+                              x1 = 1,
+                              xref = "paper",
+                              y0 = alpha,
+                              y1 = alpha,
+                              line = list(color = "black", width = 1, dash = "dash")),
+                         list(type = "line",
+                              x0 = -minFC,
+                              x1 = -minFC,
+                              y0 = 0,
+                              y1 = 1,
+                              yref = "paper",
+                              line = list(color = "black", width = 1, dash = "dash")),
+                         list(type = "line",
+                              x0 = minFC,
+                              x1 = minFC,
+                              y0 = 0,
+                              y1 = 1,
+                              yref = "paper",
+                              line = list(color = "black", width = 1, dash = "dash"))),
+           autosize = F,
+           hoverlabel=list(bgcolor="white"),
+           showlegend = F)
+  
+  p
 }

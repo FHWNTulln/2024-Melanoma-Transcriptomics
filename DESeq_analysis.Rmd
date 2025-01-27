@@ -4,7 +4,6 @@ output:
   html_document:
     df_print: paged
     toc: true
-    toc_float: true
 ---
 
 Copyright © 2024 Daniel Zimmermann. <daniel.zimmermann.dz@outlook.com>
@@ -270,11 +269,15 @@ plot_heatmap(norm.1GvsHEM.sig, hmap_colors, annotation_colors,
 
 ```{r 1GvsHEM_volcanoplot}
 
-p <- volcanoplot(res.1GvsHEM.tb, title = "MCM1G vs. nHEM", max_labels = vp_max_labels, 
+volcanoplot(res.1GvsHEM.tb, title = "MCM1G vs. nHEM", max_labels = vp_max_labels, 
             lfc_limit = vp_lfc_limit)
 
-plotly::ggplotly(p)
+```
+
+```{r 1GvsHEM_volcanoplot_interactive}
   
+volcanoplot_interactive(res.1GvsHEM.tb, title = "MCM1G vs. nHEM")
+
 ```
 
 
@@ -326,6 +329,13 @@ volcanoplot(res.DLNvsHEM.tb, title = "MCMDLN vs. nHEM", max_labels = vp_max_labe
 ```
 
 
+```{r DLNvsHEM_volcanoplot_interactive}
+  
+volcanoplot_interactive(res.DLNvsHEM.tb, title = "MCMDLN vs. nHEM")
+
+```
+
+
 ## MCMDLN vs MCM1G
 
 ```{r DLNvs1G_filter_significance}
@@ -374,6 +384,13 @@ volcanoplot(res.DLNvs1G.tb, title = "MCMDLN vs. MCM1G", max_labels = vp_max_labe
 ```
 
 
+```{r DLNvs1G_volcanoplot_interactive}
+  
+volcanoplot_interactive(res.DLNvs1G.tb, title = "MCMDLN vs. MCM1G")
+
+```
+
+
 ## MCMDLN (3D) vs MCMDLN (2D)
 
 ```{r 3Dvs2D_filter_significance}
@@ -416,7 +433,14 @@ plot_heatmap(norm.3Dvs2D.sig, hmap_colors, annotation_colors,
 
 ```{r 3Dvs2D_volcanoplot}
 
-volcanoplot(res.3Dvs2D.tb, title = "MCMDLN vs. MCM1G", max_labels = vp_max_labels, 
+volcanoplot(res.3Dvs2D.tb, title = "MCMDLN 2D vs. 3D", max_labels = vp_max_labels, 
             lfc_limit = vp_lfc_limit)
   
+```
+
+
+```{r 3Dvs2D_volcanoplot_interactive}
+  
+volcanoplot_interactive(res.3Dvs2D.tb, title = "MCMDLN 2D vs. 3D")
+
 ```
