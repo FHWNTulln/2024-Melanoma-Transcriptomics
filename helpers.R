@@ -231,7 +231,7 @@ volcanoplot <- function(data, title = NA, max_labels = NA, lfc_limit = NA) {
 }
 
 
-volcanoplot_interactive <- function(data, alpha = 0.05, minFC = 1, title = NA) {
+volcanoplot_interactive <- function(data, file = NA, alpha = 0.05, minFC = 1, title = NA) {
   data.plot <- data %>%
     filter(!is.na(padj)) %>%
     arrange(padj) %>%
@@ -244,9 +244,8 @@ volcanoplot_interactive <- function(data, alpha = 0.05, minFC = 1, title = NA) {
                hoverinfo = "none",
                hovertemplate = paste("<b>Gene:</b> %{text}",
                                      "<br><b>Log2 Fold Change:</b> %{x:.3r}",
-                                     "<br><b>Adj. p-Value:</b> %{y:.2e}<extra></extra>"),
-               width = 960, height = 720) %>%
-    layout(title = title,
+                                     "<br><b>Adj. p-Value:</b> %{y:.2e}<extra></extra>")) %>%
+    layout(title = list(text = title),
            xaxis = list(title = "Log2 Fold Change", zeroline = F),
            yaxis = list(title = "Adj. p-Value", type = "log", autorange="reversed",
                         exponentformat = "power", showexponent = "all"),
@@ -271,9 +270,13 @@ volcanoplot_interactive <- function(data, alpha = 0.05, minFC = 1, title = NA) {
                               y1 = 1,
                               yref = "paper",
                               line = list(color = "black", width = 1, dash = "dash"))),
-           autosize = F,
            hoverlabel=list(bgcolor="white"),
-           showlegend = F)
-  
-  p
+           showlegend = F,
+           margin = list(l = 50, r = 50, b = 50, t = 50, pad = 20)) %>%
+    toWebGL()
+  if (is.na(file)) {
+    p
+  } else {
+    p %>% htmlwidgets::saveWidget(file, selfcontained = T)
+  }
 }

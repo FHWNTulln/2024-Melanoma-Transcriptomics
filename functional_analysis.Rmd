@@ -55,7 +55,6 @@ names(gene_list.1GvsHEM) <- res.1GvsHEM$ENSEMBL
 
 ```{r MCM1GvsHEM_go_bp, warning=FALSE}
 
-
 gseGO.1GvsHEM.BP <- gseGO(gene_list.1GvsHEM,
                           ont = "BP",
                           OrgDb = org.Hs.eg.db,

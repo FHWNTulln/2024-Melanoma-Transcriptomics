@@ -19,6 +19,7 @@ You should have received a copy of the MIT license with this file. If not, pleas
 source("helpers.R")
 
 dir.create("results/DESeq", showWarnings = F, recursive = T)
+dir.create("plots", showWarnings = F, recursive = T)
 
 knitr::opts_chunk$set(fig.width = 10, dpi = 300, results = "hold", fig.show = "hold")
 
@@ -274,9 +275,10 @@ volcanoplot(res.1GvsHEM.tb, title = "MCM1G vs. nHEM", max_labels = vp_max_labels
 
 ```
 
-```{r 1GvsHEM_volcanoplot_interactive}
+```{r 1GvsHEM_volcanoplot_interactive, message=FALSE}
   
-volcanoplot_interactive(res.1GvsHEM.tb, title = "MCM1G vs. nHEM")
+volcanoplot_interactive(res.1GvsHEM.tb, file = "volcano_1G_vs_nHEM.html", title = "MCM1G vs. nHEM")
+file.rename("volcano_1G_vs_nHEM.html", "plots/volcano_1G_vs_nHEM.html")
 
 ```
 
@@ -329,9 +331,10 @@ volcanoplot(res.DLNvsHEM.tb, title = "MCMDLN vs. nHEM", max_labels = vp_max_labe
 ```
 
 
-```{r DLNvsHEM_volcanoplot_interactive}
+```{r DLNvsHEM_volcanoplot_interactive message=FALSE}
   
-volcanoplot_interactive(res.DLNvsHEM.tb, title = "MCMDLN vs. nHEM")
+volcanoplot_interactive(res.DLNvsHEM.tb, file = "volcano_DLN_vs_nHEM.html", title = "MCMDLN vs. nHEM")
+file.rename("volcano_DLN_vs_nHEM.html", "plots/volcano_DLN_vs_nHEM.html")
 
 ```
 
@@ -384,9 +387,10 @@ volcanoplot(res.DLNvs1G.tb, title = "MCMDLN vs. MCM1G", max_labels = vp_max_labe
 ```
 
 
-```{r DLNvs1G_volcanoplot_interactive}
+```{r DLNvs1G_volcanoplot_interactive message=FALSE}
   
-volcanoplot_interactive(res.DLNvs1G.tb, title = "MCMDLN vs. MCM1G")
+volcanoplot_interactive(res.DLNvs1G.tb, file = "volcano_DLN_vs_1G.html", title = "MCMDLN vs. MCM1G")
+file.rename("volcano_DLN_vs_1G.html", "plots/volcano_DLN_vs_1G.html")
 
 ```
 
@@ -439,8 +443,9 @@ volcanoplot(res.3Dvs2D.tb, title = "MCMDLN 2D vs. 3D", max_labels = vp_max_label
 ```
 
 
-```{r 3Dvs2D_volcanoplot_interactive}
+```{r 3Dvs2D_volcanoplot_interactive message=FALSE}
   
-volcanoplot_interactive(res.3Dvs2D.tb, title = "MCMDLN 2D vs. 3D")
+volcanoplot_interactive(res.3Dvs2D.tb, file = "volcano_3D_vs_2D.html", title = "MCMDLN 2D vs. 3D")
+file.rename("volcano_3D_vs_2D.html", "plots/volcano_3D_vs_2D.html")
 
 ```
