@@ -240,7 +240,7 @@ volcanoplot_interactive <- function(data, file = NA, alpha = 0.05, minFC = 1, ti
   
   
   p <- plot_ly(data = data.plot, x = ~log2FoldChange, y = ~padj, color = ~threshold, text = ~Name, 
-               type = "scatter", mode = "markers", colors = c("black", "darkred"),
+               opacity = 0.6, type = "scatter", mode = "markers", colors = c("black", "darkred"),
                hoverinfo = "none",
                hovertemplate = paste("<b>Gene:</b> %{text}",
                                      "<br><b>Log2 Fold Change:</b> %{x:.3r}",
